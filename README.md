@@ -1,1 +1,1 @@
-# eye-fatigue-estimation
+# Eye openness estimation
