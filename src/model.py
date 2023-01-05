@@ -48,8 +48,10 @@ class ResidualBlock(nn.Module):
 
 class Model(nn.Module):
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, combine=False):
         super(Model, self).__init__()
+
+        self.combine = combine
 
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3, stride=1, bias=False)
         self.bn1 = nn.BatchNorm2d(8, affine=True, momentum=0.99, eps=1e-3)
@@ -66,7 +68,14 @@ class Model(nn.Module):
         self.last_conv = nn.Conv2d(in_channels=128, out_channels=num_classes, kernel_size=3, padding=1)
         self.avgp = nn.AdaptiveAvgPool2d((1, 1))
 
-    def forward(self, input):
+        if self.combine:
+            self.last_conv = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1)
+            self.fc1 = nn.Linear(in_features=128, out_features=64)
+            self.fc2 = nn.Linear(in_features=64, out_features=num_classes)
+            self.fc3 = nn.Linear(in_features=64, out_features=1)
+
+        
+    def forward(self, input, fc1_return=False):
         x = input
         x = self.conv1(x)
         x = self.bn1(x)
@@ -81,4 +90,10 @@ class Model(nn.Module):
         x = self.last_conv(x)
         x = self.avgp(x)
         x = x.view((x.shape[0], -1))
+        if self.combine:
+            x = self.fc1(x)
+            if fc1_return:
+                x = self.fc3(x)
+                return x
+            x = self.fc2(x)
         return x
